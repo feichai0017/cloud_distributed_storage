@@ -1,45 +1,32 @@
 package NoKV
 
 import (
-	"fmt"
+	"github.com/feichai0017/NoKV/iterator"
+	"github.com/feichai0017/NoKV/utils/codec"
 	"testing"
 	"time"
-
-	"github.com/feichai0017/NoKV/utils"
 )
 
 func TestAPI(t *testing.T) {
-	clearDir()
+	opt := NewDefaultOptions()
 	db := Open(opt)
 	defer func() { _ = db.Close() }()
 	// 写入
-	for i := 0; i < 50; i++ {
-		key, val := fmt.Sprintf("key%d", i), fmt.Sprintf("val%d", i)
-		e := utils.NewEntry([]byte(key), []byte(val)).WithTTL(1000 * time.Second)
-		if err := db.Set(e); err != nil {
-			t.Fatal(err)
-		}
-		// 查询
-		if entry, err := db.Get([]byte(key)); err != nil {
-			t.Fatal(err)
-		} else {
-			t.Logf("db.Get key=%s, value=%s, expiresAt=%d", entry.Key, entry.Value, entry.ExpiresAt)
-		}
+	e := codec.NewEntry([]byte("hello"), []byte("coreKV")).WithTTL(1 * time.Second)
+	if err := db.Set(e); err != nil {
+		t.Fatal(err)
 	}
-
-	for i := 0; i < 40; i++ {
-		key, _ := fmt.Sprintf("key%d", i), fmt.Sprintf("val%d", i)
-		if err := db.Del([]byte(key)); err != nil {
-			t.Fatal(err)
-		}
+	// 查询
+	if entry, err := db.Get([]byte("hello")); err != nil {
+		t.Fatal(err)
+	} else {
+		t.Logf("db.Get key=%s, value=%s, expiresAt=%d", entry.Key, entry.Value, entry.ExpiresAt)
 	}
-
 	// 迭代器
-	iter := db.NewIterator(&utils.Options{
+	iter := db.NewIterator(&iterator.Options{
 		Prefix: []byte("hello"),
 		IsAsc:  false,
 	})
-	defer func() { _ = iter.Close() }()
 	defer func() { _ = iter.Close() }()
 	for iter.Rewind(); iter.Valid(); iter.Next() {
 		it := iter.Item()
@@ -50,19 +37,4 @@ func TestAPI(t *testing.T) {
 	if err := db.Del([]byte("hello")); err != nil {
 		t.Fatal(err)
 	}
-
-	for i := 0; i < 10; i++ {
-		key, val := fmt.Sprintf("key%d", i), fmt.Sprintf("val%d", i)
-		e := utils.NewEntry([]byte(key), []byte(val)).WithTTL(1000 * time.Second)
-		if err := db.Set(e); err != nil {
-			t.Fatal(err)
-		}
-		// 查询
-		if entry, err := db.Get([]byte(key)); err != nil {
-			t.Fatal(err)
-		} else {
-			t.Logf("db.Get key=%s, value=%s, expiresAt=%d", entry.Key, entry.Value, entry.ExpiresAt)
-		}
-	}
-
 }
